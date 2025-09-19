@@ -57,42 +57,49 @@ async function buildParameters(type, language, page, id, genre, genreList, confi
     language,
     page,
   };
-  // ✅  'movie' 타 입 일  때  적 용 될  필 터
-  if (type === 'movie') {
-    parameters['vote_count.gte'] = 3; // 영 화 는  투 표  수  3 이 상
-    parameters.with_original_language = 'ko'; // 한 국 어  원 작
-    parameters.certification_country = "KR";
-    parameters.certification = "All|7|12|15|18|19";
-  }
-  // ✅  'series' 타 입 일  때  적 용 될  필 터
-  if (type === 'series') {
-    parameters.with_original_language = 'ko'; // 한 국 어  원 작
-  }
-  // 카 탈 로 그  ID에  따 른  분 기  처 리
-  if (id.includes("streaming")) {
-    const provider = findProvider(id.split(".")[1]);
-    parameters.with_genres = genre ? findGenreId(genre, genreList) : undefined;
-    parameters.with_watch_providers = provider.watchProviderId;
-    parameters.watch_region = provider.country;
-    parameters.with_watch_monetization_types = "flatrate|free|ads";
-  } else {
-    switch (id) {
-      case "tmdb.top":
-        parameters.with_genres = genre ? findGenreId(genre, genreList) : undefined;
-        break;
-      case "tmdb.year":
-        const year = genre ? genre : new Date().getFullYear();
-        parameters[type === "movie" ? "primary_release_year" : "first_air_date_year"] = year;
-        break;
-      case "tmdb.language":
-        // 다 른  언 어 를  선 택 하 면  기 본  'ko' 설 정 을  덮 어 씀
+if (type === 'movie') {
+  // 기본값은 1 이상
+  parameters.with_original_language = 'ko';
+  parameters.certification_country = "KR";
+  parameters.certification = "All|7|12|15|18|19";
+}
+
+if (type === 'series') {
+  parameters.with_original_language = 'ko';
+}
+
+if (id.includes("streaming")) {
+  const provider = findProvider(id.split(".")[1]);
+  parameters.with_genres = genre ? findGenreId(genre, genreList) : undefined;
+  parameters.with_watch_providers = provider.watchProviderId;
+  parameters.watch_region = provider.country;
+  parameters.with_watch_monetization_types = "flatrate|free|ads";
+} else {
+  switch (id) {
+    case "tmdb.top":
+    case "tmdb.language":
+      if (type === "movie") {
+        parameters['vote_count.gte'] = 5; // ✅ 영화는 최소 투표수 5 이상
+      }
+      parameters.with_genres = genre ? findGenreId(genre, genreList) : undefined;
+      if (id === "tmdb.language") {
         const findGenre = genre ? findLanguageCode(genre, languages) : language.split("-")[0];
         parameters.with_original_language = findGenre;
-        break;
-      default:
-        break;
-    }
+      }
+      break;
+
+    case "tmdb.year":
+      if (type === "movie") {
+        parameters['vote_count.gte'] = 1; // ✅ 영화는 최소 투표수 1 이상
+      }
+      const year = genre ? genre : new Date().getFullYear();
+      parameters[type === "movie" ? "primary_release_year" : "first_air_date_year"] = year;
+      break;
+
+    default:
+      break;
   }
+}
   return parameters;
 }
 function findGenreId(genreName, genreList) {
