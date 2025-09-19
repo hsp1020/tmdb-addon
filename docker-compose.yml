@@ -1,10 +1,22 @@
-version: '3'
 services:
   tmdb-addon:
-    build: .
+    build: .  # 🔄 이    미    지     대    신     로    컬    에    서     직    접     빌    드
     container_name: tmdb-addon
-    ports:
-      - "3000:3000"
-    env_file:
-      - .env
+    networks:
+      - traefik_default
+    environment:
+      - TMDB_API=cc9982c4801545a1481d167137ea7b53
+      - MONGODB_METRICS="mongodb+srv://gjqmgjsl3:hh846845@cluster0.0xly1.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+      - HOST_NAME=http://hsptmdb4.duckdns.org
+      - FANART_API=1ab9fadecde8115ed16e0adfcfdcf485
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tmdb-addon.rule=Host(`hsptmdb4.duckdns.org`)"
+      - "traefik.http.routers.tmdb-addon.entrypoints=web,websecure"
+      - "traefik.http.routers.tmdb-addon.tls=true"
+      - "traefik.http.routers.tmdb-addon.tls.certresolver=production"
+      - "traefik.http.services.tmdb-addon.loadbalancer.server.port=1337"
     restart: unless-stopped
+networks:
+  traefik_default:
+    external: true
