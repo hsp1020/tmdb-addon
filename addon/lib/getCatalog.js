@@ -59,7 +59,7 @@ async function buildParameters(type, language, page, id, genre, genreList, confi
   };
   // ✅  'movie' 타 입 일  때  적 용 될  필 터
   if (type === 'movie') {
-    parameters['vote_count.gte'] = 1; // 영 화 는  투 표  수  1 이 상
+    parameters['vote_count.gte'] = 3; // 영 화 는  투 표  수  3 이 상
     parameters.with_original_language = 'ko'; // 한 국 어  원 작
     parameters.certification_country = "KR";
     parameters.certification = "All|7|12|15|18|19";
