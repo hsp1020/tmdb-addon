@@ -3,13 +3,15 @@ const { TMDBClient } = require("../utils/tmdbClient");
 const moviedb = new TMDBClient(process.env.TMDB_API);
 const { getMeta } = require("./getMeta");
 
-
-async function getTrending(type, language, page, genre) {
+async function getTrending(type, language, page, genre, config) {
   const media_type = type === "series" ? "tv" : type;
-  const ITEMS_PER_PAGE = 500;
-  const TMDB_PAGE_SIZE = 20;  // TMDB는   한   페  이  지  에   20개  만   줌
+
+  const ITEMS_PER_PAGE = 500;       // 최종 가져올 아이템 수
+  const TMDB_PAGE_SIZE = 20;        // TMDb 한 페이지당 아이템 수
   const PAGES_TO_FETCH = Math.ceil(ITEMS_PER_PAGE / TMDB_PAGE_SIZE);
+
   const startPage = (page - 1) * PAGES_TO_FETCH + 1;
+
   const fetches = Array.from({ length: PAGES_TO_FETCH }, (_, i) => {
     const parameters = {
       media_type,
@@ -17,22 +19,31 @@ async function getTrending(type, language, page, genre) {
       language,
       page: startPage + i,
     };
+
     return moviedb
       .trending(parameters)
-      .then((res) =>
-        res.results
-          .filter(el => !["zh", "hi", "id", "vi", "th", "bn", "ml"].includes(el.original_language)) // 제  외  할   언  어   필  터
-          .map((el) => parseMedia(el, type, genreList))
-      )
+      .then(async (res) => {
+        const metaPromises = res.results.map((item) =>
+          getMeta(type, language, item.id, config.rpdbkey)
+            .then((result) => result.meta)
+            .catch((err) => {
+              console.error(`Error fetching metadata for ${item.id}:`, err.message);
+              return null;
+            })
+        );
+        const metas = await Promise.all(metaPromises);
+        return metas.filter(Boolean);
+      })
       .catch((err) => {
         console.error(`Error fetching trending page ${startPage + i}:`, err);
         return [];
       });
   });
+
   const results = await Promise.all(fetches);
   return {
-    metas: results.flat().slice(0, ITEMS_PER_PAGE)
+    metas: results.flat().slice(0, ITEMS_PER_PAGE), // 정확히 500개로 제한
   };
 }
-module.exports = { getTrending };
 
+module.exports = { getTrending };
