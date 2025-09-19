@@ -1,58 +1,53 @@
 require("dotenv").config();
 const { TMDBClient } = require("../utils/tmdbClient");
 const moviedb = new TMDBClient(process.env.TMDB_API);
-const { getMeta } = require("./getMeta");
 
-const EXCLUDED_LANGUAGES = ["zh", "hi", "id", "vi", "th", "bn", "ml"];
+// 2번 코드가 참조하던 유틸을 주입받는 형태로 안전 처리
+// 외부에서 parseMedia와 genreList를 넘기지 않으면 에러 방지
+function createGetTrending({ parseMedia, genreList } = {}) {
+  if (typeof parseMedia !== "function") {
+    throw new Error("parseMedia 함수가 필요합니다.");
+  }
 
-async function getTrending(type, language, page, genre, config) {
-  const media_type = type === "series" ? "tv" : type;
+  const EXCLUDED_LANGUAGES = ["zh", "hi", "id", "vi", "th", "bn", "ml"];
 
-  const ITEMS_PER_PAGE = 500;       // 최종 가져올 아이템 수
-  const TMDB_PAGE_SIZE = 20;        // TMDb 한 페이지당 아이템 수
-  const PAGES_TO_FETCH = Math.ceil(ITEMS_PER_PAGE / TMDB_PAGE_SIZE);
+  return async function getTrending(type, language, page, genre) {
+    const media_type = type === "series" ? "tv" : type;
 
-  const startPage = (page - 1) * PAGES_TO_FETCH + 1;
+    const ITEMS_PER_PAGE = 500;      // 최종 가져올 아이템 수
+    const TMDB_PAGE_SIZE = 20;       // TMDb 한 페이지당 아이템 수
+    const PAGES_TO_FETCH = Math.ceil(ITEMS_PER_PAGE / TMDB_PAGE_SIZE);
 
-  const fetches = Array.from({ length: PAGES_TO_FETCH }, (_, i) => {
-    const parameters = {
-      media_type,
-      time_window: genre ? genre.toLowerCase() : "day",
-      language,
-      page: startPage + i,
+    const startPage = (page - 1) * PAGES_TO_FETCH + 1;
+
+    const fetches = Array.from({ length: PAGES_TO_FETCH }, (_, i) => {
+      const parameters = {
+        media_type,
+        time_window: genre ? genre.toLowerCase() : "day",
+        language,
+        page: startPage + i,
+      };
+
+      return moviedb
+        .trending(parameters)
+        .then((res) =>
+          res.results
+            .filter(
+              (el) => !EXCLUDED_LANGUAGES.includes(el.original_language)
+            )
+            .map((el) => parseMedia(el, type, genreList))
+        )
+        .catch((err) => {
+          console.error(`Error fetching trending page ${startPage + i}:`, err);
+          return [];
+        });
+    });
+
+    const results = await Promise.all(fetches);
+    return {
+      metas: results.flat().slice(0, ITEMS_PER_PAGE),
     };
-
-    return moviedb
-      .trending(parameters)
-      .then(async (res) => {
-        // TMDb 결과에서 제외할 언어 필터 적용
-        const filteredResults = res.results.filter(
-          (item) => !EXCLUDED_LANGUAGES.includes(item.original_language)
-        );
-
-        // getMeta 호출
-        const metaPromises = filteredResults.map((item) =>
-          getMeta(type, language, item.id, config.rpdbkey)
-            .then((result) => result.meta)
-            .catch((err) => {
-              console.error(`Error fetching metadata for ${item.id}:`, err.message);
-              return null;
-            })
-        );
-
-        const metas = await Promise.all(metaPromises);
-        return metas.filter(Boolean);
-      })
-      .catch((err) => {
-        console.error(`Error fetching trending page ${startPage + i}:`, err);
-        return [];
-      });
-  });
-
-  const results = await Promise.all(fetches);
-  return {
-    metas: results.flat().slice(0, ITEMS_PER_PAGE), // 정확히 500개로 제한
   };
 }
 
-module.exports = { getTrending };
+module.exports = { createGetTrending };
