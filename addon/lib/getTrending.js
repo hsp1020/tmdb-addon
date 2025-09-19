@@ -3,6 +3,8 @@ const { TMDBClient } = require("../utils/tmdbClient");
 const moviedb = new TMDBClient(process.env.TMDB_API);
 const { getMeta } = require("./getMeta");
 
+const EXCLUDED_LANGUAGES = ["zh", "hi", "id", "vi", "th", "bn", "ml"];
+
 async function getTrending(type, language, page, genre, config) {
   const media_type = type === "series" ? "tv" : type;
 
@@ -23,7 +25,12 @@ async function getTrending(type, language, page, genre, config) {
     return moviedb
       .trending(parameters)
       .then(async (res) => {
-        const metaPromises = res.results.map((item) =>
+        // 제외할 언어 필터 적용
+        const filteredResults = res.results.filter(
+          (item) => !EXCLUDED_LANGUAGES.includes(item.original_language)
+        );
+
+        const metaPromises = filteredResults.map((item) =>
           getMeta(type, language, item.id, config.rpdbkey)
             .then((result) => result.meta)
             .catch((err) => {
@@ -31,6 +38,7 @@ async function getTrending(type, language, page, genre, config) {
               return null;
             })
         );
+
         const metas = await Promise.all(metaPromises);
         return metas.filter(Boolean);
       })
