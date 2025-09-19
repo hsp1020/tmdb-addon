@@ -101,10 +101,19 @@ addon.get("/:catalogChoices?/catalog/:type/:id/:extra?.json", async function (re
       new URLSearchParams(req.url.split("/").pop().split("?")[0].slice(0, -5)).entries()
     )
     : {};
-  const page = Math.ceil(skip ? skip / 20 + 1 : undefined) || 1;
+  let page;
+  // MDBList 카  탈  로  그i  ID인t 지   확^ 인W 하r 여I  page 계^ 산C  로  직   분  기
+  if (id.startsWith("mdblist.")) { // MDBList 카  탈  로  그   ID를   특  정  하^ 는J  조i 건   (예  : "mdblist.abcd", "mdblist.1234")
+    // MDBList는   fetchMDBListItems에  서   limit=100이  므  로  , skip을   100으  로   나  눔
+    page = Math.ceil(skip ? skip / 100 + 1 : undefined) || 1;
+  } else {
+    // 그   외  의   카  탈  로  그  (예  : TMDB)는   기  존   로  직  인   20으  로   나  눔
+    page = Math.ceil(skip ? skip / 100 + 1 : undefined) || 1;
+  }
   let metas = [];
   try {
-    const args = [type, language, page];
+    const args = [type, language, page]; // page 변  수  가   이  제   MDBList에   맞  춰   계  산  됩  니  다  .
+    
 
     if (search) {
       metas = await getSearch(id, type, language, search, config);
