@@ -129,7 +129,7 @@ async function getManifest(config) {
     signature: "eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..DTiTHmYyIbuTMPJB35cqsw.S2C6xuCL9OoHJbtX97v-2w3IM4iFqr2Qy4xRRlvyzIY2fZAcwmm6JUMdsc2LSTigIPQeGPomaqX53ECt23cJKuH-IKs4hHLH4sLYRZNL_VC0YefQNrWjMRZ75Yz-bVx3.DJZBtIb1bOCq6Z62AMUGvw"
   }
 
-  const years = generateArrayOfYears(20);
+  const years = generateArrayOfYears(50);
   const genres_movie = await getGenreList(language, "movie").then(genres => {
     const sortedGenres = genres.map(el => el.name).sort();
     return sortedGenres;
