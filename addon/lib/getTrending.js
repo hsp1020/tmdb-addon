@@ -25,11 +25,12 @@ async function getTrending(type, language, page, genre, config) {
     return moviedb
       .trending(parameters)
       .then(async (res) => {
-        // 제외할 언어 필터 적용
+        // TMDb 결과에서 제외할 언어 필터 적용
         const filteredResults = res.results.filter(
           (item) => !EXCLUDED_LANGUAGES.includes(item.original_language)
         );
 
+        // getMeta 호출
         const metaPromises = filteredResults.map((item) =>
           getMeta(type, language, item.id, config.rpdbkey)
             .then((result) => result.meta)
