@@ -94,6 +94,7 @@ if (id.includes("streaming")) {
       }
       const year = genre ? genre : new Date().getFullYear();
       parameters[type === "movie" ? "primary_release_year" : "first_air_date_year"] = year;
+      parameters.sort_by = type === "movie" ? "release_date.desc" : "first_air_date.desc";
       break;
 
     default:
