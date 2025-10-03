@@ -131,7 +131,7 @@ async function getManifest(config) {
 
   const years = generateArrayOfYears(50);
   const genres_movie = await getGenreList(language, "movie").then(genres => {
-    const sortedGenres = genres.map(el => el.name).sort();
+    const sortedGenres = genres ? genres.map(el => el.name).sort() : [];
     return sortedGenres;
   });
 
