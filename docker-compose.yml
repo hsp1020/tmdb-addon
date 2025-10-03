@@ -2,7 +2,6 @@ services:
   tmdb-addon:
     build: .  # 🔄 이    미    지     대    신     로    컬    에    서     직    접     빌    드
     container_name: tmdb-addon
-    command: node --no-network-family-autoselection index.js
     networks:
       - traefik_default
     environment:
